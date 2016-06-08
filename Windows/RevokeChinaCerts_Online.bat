@@ -4,7 +4,20 @@
 :: Author: JayXon, Hugo Chan, ntkme, Chengr28
 :: 
 
+
 @echo off
+
+
+:: Check administrative permission.
+net session >NUL 2>NUL
+if ERRORLEVEL 1 (
+	color 4F
+	echo Please run as Administrator.
+	echo.
+	pause & break
+	echo.
+	cls
+)
 
 
 :: Locate directory and architecture check
@@ -14,7 +27,7 @@ if %PROCESSOR_ARCHITECTURE%%PROCESSOR_ARCHITEW6432% EQU x86 (set CertMgr="%~dp0T
 set Certificates="%~dp0..\Shared\Certificates
 
 
-:: Choice and update system certificates
+:: Choice
 echo RevokeChinaCerts Online batch
 echo.
 echo 1: Base version
@@ -23,25 +36,24 @@ echo 3: All version
 echo 4: Restore all Online revoking
 echo.
 set /P UserChoice="Choose: "
-if %UserChoice% GTR 0 (if %UserChoice% LEQ 4 ("%~dp0Tools\RootSUPD_201403_x86.exe"))
 set UserChoice=CASE_%UserChoice%
 cls
 goto %UserChoice%
 
 
-:: Process
+:: Support functions
 :REVOKE_ROOT_CA
 %CertMgr% -del -c -sha1 %1 -s -r localMachine Root
 %CertMgr% -del -c -sha1 %1 -s -r localMachine AuthRoot
 %CertMgr% -del -c -sha1 %1 -s -r CurrentUser Root
 %CertMgr% -del -c -sha1 %1 -s -r CurrentUser AuthRoot
-%CertMgr% -add -c %Certificates%\%1.crt" -s Disallowed
+%CertMgr% -add -c %Certificates%\%1.crt" -s -r localMachine Disallowed
 goto :EOF
 
 :REVOKE_INTERMEDIATE_CA
 %CertMgr% -del -c -sha1 %1 -s -r localMachine CA
 %CertMgr% -del -c -sha1 %1 -s -r CurrentUser CA
-%CertMgr% -add -c %Certificates%\%1.crt" -s Disallowed
+%CertMgr% -add -c %Certificates%\%1.crt" -s -r localMachine Disallowed
 goto :EOF
 
 :REVOKE_SSL
@@ -49,7 +61,8 @@ call :REVOKE_ROOT_CA %1
 goto :EOF
 
 :RESTORE
-%CertMgr% -del -c -sha1 %1 -s Disallowed
+%CertMgr% -del -c -sha1 %1 -s -r currentUser Disallowed
+%CertMgr% -del -c -sha1 %1 -s -r localMachine Disallowed
 goto :EOF
 
 
